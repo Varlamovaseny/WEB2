@@ -1,0 +1,73 @@
+* {
+margin: 0;
+padding: 0;
+}
+img {
+    width: 4%;
+    height: auto;
+}
+
+body {
+    background-color: rgba(225, 87, 87, 0.779);
+}
+@font-face {
+    font-family: "clickclack";
+    src: url(ClickClack\ Regular.otf);
+}
+p {
+    font-family: clickclack;
+    color:rgb(242, 243, 246);
+    font-size: 200%;
+}
+.header{
+    background-color: rgba(75, 20, 20, 0.952);
+    width: 100%;
+    height: 100%;
+    display: flex; 
+    align-items: center;
+}
+.footer-container {
+    display: flex;                  /* Flex-контейнер для горизонтального расположения */
+  
+    background-color: rgba(75, 20, 20, 0.952);
+    width: 100%;
+    height: 100%;
+    align-items: center;            /* Выравниваем блоки по вертикали */
+    flex-wrap: wrap;                /* Позволяем блокам переноситься при нехватке места */
+    gap: 20px;                      /* Промежуток между блоками */
+    max-width: 1200px;              /* Ограничиваем максимальную ширину контейнера */
+    margin: 0 auto;                 /* Центрируем контейнер в пределах подвала */
+    padding: 0 20px;                /* Горизонтальные отступы на десктопе */
+}
+
+.footer-nav,
+.footer-contacts {
+  margin: 0; /* Убираем лишние вертикальные отступы */
+}
+
+.footer-nav li,
+.footer-contacts li {
+  list-style: none;    /* Убираем маркеры списка */
+  margin-bottom: 5px;  /* Отступ между пунктами списка */
+}
+
+.footer-nav a,
+.footer-contacts a {
+  text-decoration: none; /* Убираем подчёркивание у ссылок */
+  color: rgb(242, 243, 246);
+  font-family: clickclack;      
+}
+@media (max-width: 600px) {
+  .footer-container {
+    flex-direction: column; /* На мобильных блоки идут вертикально */
+    align-items: flex-start;/* Выравниваем по левому краю */
+    text-align: left;       /* Выравниваем текст по левому краю */
+    gap: 10px;              /* Меньший промежуток между блоками */
+    padding: 0 0px;        /* Меньше горизонтальные отступы слева и справа */
+  }
+
+  .footer-nav,
+  .footer-contacts {
+    margin: 10px 0; /* Вертикальные отступы между блоками на мобильных */
+  }
+}
