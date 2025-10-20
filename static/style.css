@@ -16,7 +16,7 @@ body {
 /* Загрузка шрифта */
 @font-face {
     font-family: "clickclack";
-    src: url(ClickClack\ Regular.otf);
+    src: url("ClickClack Regular.otf");
 }
 
 /* Общие стили для текста */
@@ -73,10 +73,14 @@ p, h1, h2, h3, h4, h5, h6 {
     font-family: clickclack;
     font-size: 1.1rem;
     transition: color 0.3s ease;
+    padding: 5px 10px;
+    border-radius: 5px;
 }
 
-.main-nav a:hover {
-    color: rgba(225, 87, 87, 0.779);
+.main-nav a:hover,
+.main-nav a.active {
+    background-color: rgba(225, 87, 87, 0.779);
+    color: white;
 }
 
 /* Основное содержимое */
@@ -89,6 +93,148 @@ p, h1, h2, h3, h4, h5, h6 {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
+}
+
+/* Стили для формы обратной связи */
+.feedback-form {
+    max-width: 600px;
+    margin: 0 auto;
+    background-color: rgba(75, 20, 20, 0.8);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-family: clickclack;
+    color: rgb(242, 243, 246);
+    font-size: 1.1rem;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid rgba(242, 243, 246, 0.3);
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: rgba(225, 87, 87, 0.779);
+}
+
+.form-group textarea {
+    min-height: 150px;
+    resize: vertical;
+}
+
+.error {
+    color: #ff6b6b;
+    font-family: Arial, sans-serif;
+    font-size: 0.9rem;
+    margin-top: 5px;
+    display: block;
+}
+
+.submit-btn {
+    background-color: rgba(225, 87, 87, 0.9);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    font-family: clickclack;
+    font-size: 1.1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.submit-btn:hover {
+    background-color: rgba(225, 87, 87, 1);
+}
+
+/* Стили для отображения отправленных данных */
+.feedback-data {
+    max-width: 600px;
+    margin: 0 auto;
+    background-color: rgba(75, 20, 20, 0.8);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.data-item {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+}
+
+.data-label {
+    font-weight: bold;
+    font-family: clickclack;
+    color: rgb(242, 243, 246);
+    margin-bottom: 5px;
+}
+
+.data-value {
+    font-family: Arial, sans-serif;
+    color: white;
+    word-wrap: break-word;
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 20px;
+    color: rgb(242, 243, 246);
+    text-decoration: none;
+    font-family: clickclack;
+    padding: 10px 20px;
+    background-color: rgba(225, 87, 87, 0.9);
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.back-link:hover {
+    background-color: rgba(225, 87, 87, 1);
+}
+
+/* Стили для flash-сообщений */
+.flash-messages {
+    margin-bottom: 20px;
+}
+
+.flash-message {
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+}
+
+.flash-message.success {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.flash-message.error {
+    background-color: #f44336;
+    color: white;
+}
+
+.flash-message.warning {
+    background-color: #ff9800;
+    color: white;
 }
 
 /* Стили подвала */
@@ -195,6 +341,12 @@ p, h1, h2, h3, h4, h5, h6 {
         text-align: center;
         padding: 20px 15px;
     }
+
+    .feedback-form,
+    .feedback-data {
+        margin: 0 15px;
+        padding: 20px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -212,5 +364,10 @@ p, h1, h2, h3, h4, h5, h6 {
     
     .main-nav a {
         font-size: 0.9rem;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+        padding: 10px;
     }
 }
