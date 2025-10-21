@@ -3,25 +3,32 @@
 {% block title %}{{ article.title }} - Meow Blog{% endblock %}
 
 {% block content %}
-<div class="article-detail">
-    <div class="article-meta">
-        <h1>{{ article.title }}</h1>
+<div class="article-detail {% if is_today_article(article.date) %}today{% endif %}">
+    <div class="article-header">
+        <div class="article-title-wrapper">
+            <h1>{{ article.title }}</h1>
+            {% if is_today_article(article.date) %}
+            <span class="new-badge new-badge-large">Новое!</span>
+            {% endif %}
+        </div>
         <div class="article-info">
-            <span class="article-date">Опубликовано: {{ article.date }}</span>
+            <span class="article-date {% if is_today_article(article.date) %}today{% endif %}">
+                Опубликовано: {{ article.date }}
+            </span>
             <span class="article-id">ID: {{ article.id }}</span>
         </div>
     </div>
-    
+
     <div class="article-content">
         {{ article.content|safe }}
-        
+
         {% if article.id > 3 %}
         <div class="article-notice">
             <p><em>Эта статья находится в разработке. Скоро здесь появится больше интересного контента!</em></p>
         </div>
         {% endif %}
     </div>
-    
+
     <a href="{{ url_for('news') }}" class="back-to-news">← Вернуться к списку новостей</a>
 </div>
 {% endblock %}

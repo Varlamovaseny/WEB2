@@ -5,12 +5,21 @@
 {% block content %}
 <div class="news-section">
     <h2>Последние новости</h2>
-    
+
     <div class="news-list">
         {% for article in articles %}
-        <article class="news-item">
-            <h3>{{ article.title }}</h3>
-            <p class="news-date">Опубликовано: {{ article.date }}</p>
+        <article class="news-item {% if is_today_article(article.date) %}today{% endif %}">
+            <div class="news-header">
+                <div class="news-title-wrapper">
+                    <h3>{{ article.title }}</h3>
+                    {% if is_today_article(article.date) %}
+                    <span class="new-badge">Новое!</span>
+                    {% endif %}
+                </div>
+            </div>
+            <p class="news-date {% if is_today_article(article.date) %}today{% endif %}">
+                Опубликовано: {{ article.date }}
+            </p>
             <p class="news-excerpt">{{ article.excerpt }}</p>
             <a href="{{ url_for('news_article', id=article.id) }}" class="read-more">Читать далее</a>
         </article>
@@ -18,16 +27,24 @@
 
         <!-- Дополнительные статьи-заглушки -->
         <article class="news-item">
-            <h3>Секреты кошачьего воспитания</h3>
-            <p class="news-date">Опубликовано: 5 декабря 2024</p>
-            <p class="news-excerpt">Как правильно воспитывать котенка и приучать его к порядку...</p>
+            <div class="news-header">
+                <div class="news-title-wrapper">
+                    <h3>Ученые скрестили ёжика и шишки хмеля</h3>
+                </div>
+            </div>
+            <p class="news-date">Опубликовано: 5 декабря 2025</p>
+            <p class="news-excerpt">И чета ниче не получилось...</p>
             <a href="{{ url_for('news_article', id=4) }}" class="read-more">Читать далее</a>
         </article>
 
         <article class="news-item">
-            <h3>Лучшие игрушки для кошек</h3>
-            <p class="news-date">Опубликовано: 1 декабря 2024</p>
-            <p class="news-excerpt">Обзор самых интересных и безопасных игрушек для ваших питомцев...</p>
+            <div class="news-header">
+                <div class="news-title-wrapper">
+                    <h3>Выход нового альбома Playboi Carti</h3>
+                </div>
+            </div>
+            <p class="news-date">Опубликовано: 25 марта 2025</p>
+            <p class="news-excerpt">Карти братишка 30 треков выпустил совместно с...</p>
             <a href="{{ url_for('news_article', id=5) }}" class="read-more">Читать далее</a>
         </article>
     </div>
