@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Сообщение отправлено - Meow Blog{% endblock %}
+
+{% block content %}
+<div class="feedback-data">
+    <h2>Спасибо за ваше сообщение!</h2>
+    <p>Мы получили ваше сообщение и скоро с вами свяжемся.</p>
+    
+    <div class="data-summary">
+        <h3>Ваши данные:</h3>
+        
+        <div class="data-item">
+            <div class="data-label">Имя:</div>
+            <div class="data-value">{{ name }}</div>
+        </div>
+        
+        <div class="data-item">
+            <div class="data-label">Email:</div>
+            <div class="data-value">{{ email }}</div>
+        </div>
+        
+        <div class="data-item">
+            <div class="data-label">Сообщение:</div>
+            <div class="data-value">{{ message }}</div>
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <a href="{{ url_for('feedback') }}" class="back-link">Отправить еще одно сообщение</a>
+        <a href="{{ url_for('index') }}" class="back-link">Вернуться на главную</a>
+    </div>
+</div>
+{% endblock %}

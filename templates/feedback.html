@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Обратная связь - Meow Blog{% endblock %}
+
+{% block content %}
+<div class="feedback-form">
+    <h2>Обратная связь</h2>
+    <p>Заполните форму ниже и мы обязательно вам ответим!</p>
+    
+    <form method="POST" action="{{ url_for('feedback') }}">
+        <div class="form-group">
+            <label for="name">Имя *</label>
+            <input type="text" id="name" name="name" value="{{ name or '' }}" required>
+            {% if errors and errors.name %}
+                <span class="error">{{ errors.name }}</span>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email *</label>
+            <input type="email" id="email" name="email" value="{{ email or '' }}" required>
+            {% if errors and errors.email %}
+                <span class="error">{{ errors.email }}</span>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="message">Сообщение *</label>
+            <textarea id="message" name="message" required>{{ message or '' }}</textarea>
+            {% if errors and errors.message %}
+                <span class="error">{{ errors.message }}</span>
+            {% endif %}
+        </div>
+        
+        <button type="submit" class="submit-btn">Отправить сообщение</button>
+    </form>
+</div>
+{% endblock %}
