@@ -7,16 +7,28 @@
     <h2>Последние новости</h2>
     
     <div class="news-list">
+        {% for article in articles %}
         <article class="news-item">
-            <h3>Новая статья о котиках</h3>
-            <p class="news-date">Опубликовано: 20 декабря 2024</p>
-            <p>Сегодня мы расскажем вам о самых интересных породах кошек...</p>
+            <h3>{{ article.title }}</h3>
+            <p class="news-date">Опубликовано: {{ article.date }}</p>
+            <p class="news-excerpt">{{ article.excerpt }}</p>
+            <a href="{{ url_for('news_article', id=article.id) }}" class="read-more">Читать далее</a>
         </article>
-        
+        {% endfor %}
+
+        <!-- Дополнительные статьи-заглушки -->
         <article class="news-item">
-            <h3>Обновление дизайна сайта</h3>
-            <p class="news-date">Опубликовано: 15 декабря 2024</p>
-            <p>Мы обновили дизайн нашего блога чтобы вам было удобнее...</p>
+            <h3>Секреты кошачьего воспитания</h3>
+            <p class="news-date">Опубликовано: 5 декабря 2024</p>
+            <p class="news-excerpt">Как правильно воспитывать котенка и приучать его к порядку...</p>
+            <a href="{{ url_for('news_article', id=4) }}" class="read-more">Читать далее</a>
+        </article>
+
+        <article class="news-item">
+            <h3>Лучшие игрушки для кошек</h3>
+            <p class="news-date">Опубликовано: 1 декабря 2024</p>
+            <p class="news-excerpt">Обзор самых интересных и безопасных игрушек для ваших питомцев...</p>
+            <a href="{{ url_for('news_article', id=5) }}" class="read-more">Читать далее</a>
         </article>
     </div>
 </div>

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} - Meow Blog{% endblock %}
+
+{% block content %}
+<div class="article-detail">
+    <div class="article-meta">
+        <h1>{{ article.title }}</h1>
+        <div class="article-info">
+            <span class="article-date">Опубликовано: {{ article.date }}</span>
+            <span class="article-id">ID: {{ article.id }}</span>
+        </div>
+    </div>
+    
+    <div class="article-content">
+        {{ article.content|safe }}
+        
+        {% if article.id > 3 %}
+        <div class="article-notice">
+            <p><em>Эта статья находится в разработке. Скоро здесь появится больше интересного контента!</em></p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <a href="{{ url_for('news') }}" class="back-to-news">← Вернуться к списку новостей</a>
+</div>
+{% endblock %}
