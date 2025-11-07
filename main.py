@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash
 import re
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import os
 
 app = Flask(__name__)
@@ -44,6 +44,8 @@ class Article(db.Model):
     title = db.Column(db.String(200), nullable=False)
     text = db.Column(db.Text, nullable=False)
     created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    category = db.Column(db.String(50), nullable=False, default='Разное')
+    excerpt = db.Column(db.Text)
 
     # Внешний ключ для связи с User
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -52,12 +54,20 @@ class Article(db.Model):
         return f'<Article {self.title}>'
 
 
+# Функция для получения текущей даты в правильном часовом поясе
+def get_local_datetime():
+    """Возвращает текущую дату и время в локальном часовом поясе"""
+    return datetime.now()
+
+
 # Создание таблиц при запуске
 with app.app_context():
+    # Пересоздаем все таблицы
+    db.drop_all()
     db.create_all()
 
-    # Создаем тестовых пользователей, если их нет (с проверкой на уникальность)
-    if not User.query.first():  # Проверяем, есть ли вообще пользователи
+    # Создаем тестовых пользователей, если их нет
+    if not User.query.first():
         users_to_create = [
             {'name': 'Петя Пупкин', 'email': 'petya@meowblog.ru'},
             {'name': 'Кай Ангел', 'email': 'kai@meowblog.ru'},
@@ -66,13 +76,56 @@ with app.app_context():
         ]
 
         for user_data in users_to_create:
-            # Проверяем, не существует ли уже пользователь с таким email
             if not User.query.filter_by(email=user_data['email']).first():
                 user = User(name=user_data['name'], email=user_data['email'])
                 user.set_password('password123')
                 db.session.add(user)
 
         db.session.commit()
+
+        # Создаем демо-статьи в БД
+        users = User.query.all()
+        if users and not Article.query.first():
+            # Статьи с СЕГОДНЯШНЕЙ датой (используем локальное время)
+            article1 = Article(
+                title='Новая картина Бэнкси',
+                text='Может завтра нарисует?',
+                category='Искусство',
+                excerpt='пока не нарисована...',
+                user_id=users[0].id,
+                created_date=get_local_datetime()  # Локальная дата
+            )
+            article2 = Article(
+                title='Я новость',
+                text='Да блин нуууу :(((',
+                category='Разное',
+                excerpt='не открывай меня',
+                user_id=users[1].id if len(users) > 1 else users[0].id,
+                created_date=get_local_datetime()  # Локальная дата
+            )
+            article3 = Article(
+                title='Новый показ Victoria`s Secret',
+                text='Красотки, умницы, молодцы! Так держать девчонки!',
+                category='Мода',
+                excerpt='Возвращение легендарных ангелов на подиум',
+                user_id=users[2].id if len(users) > 2 else users[0].id,
+                created_date=get_local_datetime()  # Локальная дата
+            )
+            # Статья со ВЧЕРАШНЕЙ датой для теста
+            yesterday = get_local_datetime() - timedelta(days=1)
+            article4 = Article(
+                title='Старая статья',
+                text='Это старая статья для тестирования',
+                category='Разное',
+                excerpt='старая статья...',
+                user_id=users[0].id,
+                created_date=yesterday  # Вчерашняя дата
+            )
+            db.session.add(article1)
+            db.session.add(article2)
+            db.session.add(article3)
+            db.session.add(article4)
+            db.session.commit()
 
 # Обновленные категории
 CATEGORIES = [
@@ -82,36 +135,22 @@ CATEGORIES = [
     'Политика'
 ]
 
-# Обновленные статьи с новыми авторами
-NEWS_ARTICLES = [
-    {
-        'id': 1,
-        'title': 'Новая картина Бэнкси',
-        'date': date.today().strftime('%d %B %Y'),
-        'excerpt': 'пока не нарисована...',
-        'content': '''<p>Может завтра нарисует?</p>''',
-        'author_id': 1,
-        'category': 'Искусство'
-    },
-    {
-        'id': 2,
-        'title': 'Я новость',
-        'date': '25 марта 2025',
-        'excerpt': 'не открывай меня',
-        'content': '''<p>Да блин нуууу :(((</p>''',
-        'author_id': 2,
-        'category': 'Разное'
-    },
-    {
-        'id': 3,
-        'title': 'Новый показ Victoria`s Secret',
-        'date': date.today().strftime('%d %B %Y'),
-        'excerpt': 'Возвращение легендарных ангелов на подиум',
-        'content': '''<p>Красотки, умницы, молодцы! Так держать девчонки!</p>''',
-        'author_id': 3,
-        'category': 'Мода'
+
+# Вспомогательная функция для преобразования статьи из БД в формат для шаблонов
+def article_to_dict(article):
+    # Используем локальное время для форматирования даты
+    local_created_date = article.created_date
+    return {
+        'id': article.id,
+        'title': article.title,
+        'date': local_created_date.strftime('%d %B %Y'),
+        'excerpt': article.excerpt or article.text[:100] + '...',
+        'content': f'<p>{article.text}</p>',
+        'author_id': article.user_id,
+        'category': article.category,
+        'created_date_obj': local_created_date  # Добавляем объект даты для отладки
     }
-]
+
 
 # Обновленные авторы (для совместимости со старым кодом)
 AUTHORS = [
@@ -122,11 +161,27 @@ AUTHORS = [
 ]
 
 
+# ИСПРАВЛЕННАЯ функция проверки сегодняшней статьи
 def is_today_article(article_date):
+    """
+    Проверяет, является ли дата статьи сегодняшней.
+    Принимает объект datetime или строку с датой.
+    """
     try:
-        article_datetime = datetime.strptime(article_date, '%d %B %Y')
-        return article_datetime.date() == date.today()
-    except ValueError:
+        # Если передана строка (из article_to_dict)
+        if isinstance(article_date, str):
+            # Парсим строку в формате "20 December 2024"
+            article_datetime = datetime.strptime(article_date, '%d %B %Y')
+            return article_datetime.date() == date.today()
+
+        # Если передан объект datetime (напрямую из БД)
+        elif isinstance(article_date, datetime):
+            return article_date.date() == date.today()
+
+        return False
+
+    except (ValueError, AttributeError) as e:
+        print(f"Ошибка при проверке даты: {e}")
         return False
 
 
@@ -179,28 +234,52 @@ def validate_article_form(title, content, author_id, category):
 # Маршруты
 @app.route('/')
 def index():
-    today_articles = [article for article in NEWS_ARTICLES if is_today_article(article['date'])]
-    return render_template('index.html', today_articles=today_articles)
+    # Получаем статьи из БД
+    articles = Article.query.order_by(Article.created_date.desc()).all()
+    today_articles = [article for article in articles if is_today_article(article.created_date)]
+    return render_template('index.html',
+                           today_articles=[article_to_dict(article) for article in today_articles],
+                           current_date=date.today())
 
 
 @app.route('/news')
 def news():
-    return render_template('news.html', articles=NEWS_ARTICLES, is_today_article=is_today_article)
+    # Получаем все статьи из БД
+    articles = Article.query.order_by(Article.created_date.desc()).all()
+    articles_dict = [article_to_dict(article) for article in articles]
+
+    # Отладочная информация
+    print("=== ОТЛАДОЧНАЯ ИНФОРМАЦИЯ ===")
+    print(f"Сегодня: {date.today()}")
+    for article in articles:
+        print(
+            f"Статья '{article.title}': {article.created_date.date()} (сегодняшняя: {is_today_article(article.created_date)})")
+    print("=============================")
+
+    return render_template('news.html',
+                           articles=articles_dict,
+                           is_today_article=is_today_article,
+                           current_date=date.today())
 
 
 @app.route('/news/<int:id>')
 def news_article(id):
-    article = next((article for article in NEWS_ARTICLES if article['id'] == id), None)
+    article = Article.query.get(id)
 
     if article:
-        author = next((author for author in AUTHORS if author['id'] == article['author_id']), None)
-        return render_template('news_article.html', article=article, author=author, is_today_article=is_today_article)
+        author = next((author for author in AUTHORS if author['id'] == article.user_id), None)
+        return render_template('news_article.html',
+                               article=article_to_dict(article),
+                               author=author,
+                               is_today_article=is_today_article,
+                               current_date=date.today())
     else:
         return render_template('news_article.html',
                                article={'id': id, 'title': f'Статья {id}',
                                         'date': datetime.now().strftime('%d %B %Y'),
                                         'content': f'<p>Статья с ID {id} находится в разработке. Скоро здесь появится интересный контент!</p>'},
-                               is_today_article=is_today_article)
+                               is_today_article=is_today_article,
+                               current_date=date.today())
 
 
 @app.route('/about')
@@ -255,19 +334,34 @@ def create_article():
                                    authors=AUTHORS,
                                    categories=CATEGORIES)
         else:
-            new_article = {
-                'id': len(NEWS_ARTICLES) + 1,
-                'title': title,
-                'content': f'<p>{content}</p>',
-                'excerpt': excerpt or content[:100] + '...' if content else '',
-                'date': date.today().strftime('%d %B %Y'),
-                'author_id': int(author_id),
-                'category': category
-            }
+            # СОХРАНЯЕМ СТАТЬЮ В БАЗУ ДАННЫХ
+            try:
+                # Находим пользователя по ID
+                user = User.query.get(int(author_id))
+                if not user:
+                    flash('Автор не найден!', 'error')
+                    return redirect(url_for('create_article'))
 
-            NEWS_ARTICLES.append(new_article)
-            flash('Статья успешно создана!', 'success')
-            return redirect(url_for('news_article', id=new_article['id']))
+                # Создаем новую статью с ЛОКАЛЬНОЙ датой
+                new_article = Article(
+                    title=title,
+                    text=content,
+                    excerpt=excerpt or content[:100] + '...',
+                    category=category,
+                    user_id=int(author_id),
+                    created_date=get_local_datetime()  # Используем локальное время!
+                )
+
+                db.session.add(new_article)
+                db.session.commit()
+
+                flash('Статья успешно создана!', 'success')
+                return redirect(url_for('news_article', id=new_article.id))
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Ошибка при создании статьи: {str(e)}', 'error')
+                return redirect(url_for('create_article'))
 
     return render_template('create_article.html',
                            authors=AUTHORS,
@@ -277,7 +371,7 @@ def create_article():
 # Редактирование статьи
 @app.route('/edit-article/<int:id>', methods=['GET', 'POST'])
 def edit_article(id):
-    article = next((article for article in NEWS_ARTICLES if article['id'] == id), None)
+    article = Article.query.get(id)
 
     if not article:
         flash('Статья не найдена!', 'error')
@@ -294,7 +388,7 @@ def edit_article(id):
 
         if errors:
             return render_template('edit_article.html',
-                                   article=article,
+                                   article=article_to_dict(article),
                                    title=title,
                                    content=content,
                                    author_id=author_id,
@@ -304,24 +398,33 @@ def edit_article(id):
                                    authors=AUTHORS,
                                    categories=CATEGORIES)
         else:
-            # Обновляем статью
-            article['title'] = title
-            article['content'] = f'<p>{content}</p>'
-            article['excerpt'] = excerpt or content[:100] + '...' if content else ''
-            article['author_id'] = int(author_id)
-            article['category'] = category
+            try:
+                # Обновляем статью в БД
+                article.title = title
+                article.text = content
+                article.excerpt = excerpt or content[:100] + '...'
+                article.category = category
+                article.user_id = int(author_id)
+                # При редактировании не меняем дату создания
 
-            flash('Статья успешно обновлена!', 'success')
-            return redirect(url_for('news_article', id=id))
+                db.session.commit()
+
+                flash('Статья успешно обновлена!', 'success')
+                return redirect(url_for('news_article', id=id))
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Ошибка при обновлении статьи: {str(e)}', 'error')
+                return redirect(url_for('edit_article', id=id))
 
     # GET запрос - показываем форму с текущими данными
     return render_template('edit_article.html',
-                           article=article,
-                           title=article['title'],
-                           content=article['content'].replace('<p>', '').replace('</p>', ''),
-                           author_id=article['author_id'],
-                           category=article['category'],
-                           excerpt=article['excerpt'],
+                           article=article_to_dict(article),
+                           title=article.title,
+                           content=article.text,
+                           author_id=article.user_id,
+                           category=article.category,
+                           excerpt=article.excerpt,
                            authors=AUTHORS,
                            categories=CATEGORIES)
 
@@ -329,14 +432,19 @@ def edit_article(id):
 # Удаление статьи
 @app.route('/delete-article/<int:id>')
 def delete_article(id):
-    global NEWS_ARTICLES
-    article = next((article for article in NEWS_ARTICLES if article['id'] == id), None)
+    try:
+        article = Article.query.get(id)
 
-    if article:
-        NEWS_ARTICLES = [article for article in NEWS_ARTICLES if article['id'] != id]
-        flash('Статья успешно удалена!', 'success')
-    else:
-        flash('Статья не найдена!', 'error')
+        if article:
+            db.session.delete(article)
+            db.session.commit()
+            flash('Статья успешно удалена!', 'success')
+        else:
+            flash('Статья не найдена!', 'error')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ошибка при удалении статьи: {str(e)}', 'error')
 
     return redirect(url_for('news'))
 
@@ -357,12 +465,13 @@ def demo_db():
 @app.route('/category/<category_name>')
 def category_news(category_name):
     """Показывает статьи определенной категории"""
-    category_articles = [article for article in NEWS_ARTICLES if article['category'] == category_name]
+    articles = Article.query.filter_by(category=category_name).order_by(Article.created_date.desc()).all()
 
     return render_template('category_news.html',
-                           articles=category_articles,
+                           articles=[article_to_dict(article) for article in articles],
                            category_name=category_name,
-                           is_today_article=is_today_article)
+                           is_today_article=is_today_article,
+                           current_date=date.today())
 
 
 if __name__ == '__main__':

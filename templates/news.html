@@ -6,21 +6,21 @@
 <div class="news-section">
     <div class="news-header-section">
         <h2>Последние новости</h2>
+    </div>
 
-        <!-- Фильтр по категориям -->
-        <div class="category-filter">
-            <h3>Категории:</h3>
-            <div class="category-buttons">
-                <a href="{{ url_for('news') }}" class="category-btn {% if not request.args.get('category') %}active{% endif %}">
-                    Все
-                </a>
-                {% for category in ['Искусство', 'Мода', 'Разное', 'Политика'] %}
-                <a href="{{ url_for('category_news', category_name=category) }}"
-                   class="category-btn {% if request.endpoint == 'category_news' and category_name == category %}active{% endif %}">
-                    {{ category }}
-                </a>
-                {% endfor %}
-            </div>
+    <!-- Фильтр по категориям -->
+    <div class="category-filter">
+        <h3>Категории:</h3>
+        <div class="category-buttons">
+            <a href="{{ url_for('news') }}" class="category-btn {% if not request.args.get('category') %}active{% endif %}">
+                Все
+            </a>
+            {% for category in ['Искусство', 'Мода', 'Разное', 'Политика'] %}
+            <a href="{{ url_for('category_news', category_name=category) }}"
+               class="category-btn {% if request.endpoint == 'category_news' and category_name == category %}active{% endif %}">
+                {{ category }}
+            </a>
+            {% endfor %}
         </div>
     </div>
 
@@ -46,34 +46,6 @@
             </div>
         </article>
         {% endfor %}
-
-        <article class="news-item">
-            <div class="news-header">
-                <div class="news-title-wrapper">
-                    <h3>Ученые скрестили ёжика и шишки хмеля</h3>
-                </div>
-            </div>
-            <p class="news-date">Опубликовано: 5 декабря 2025</p>
-            <p class="news-excerpt">И чета ниче не получилось...</p>
-            <div class="article-meta">
-                <span class="category-link">Разное</span>
-                <a href="{{ url_for('news_article', id=4) }}" class="read-more">Читать далее</a>
-            </div>
-        </article>
-
-        <article class="news-item">
-            <div class="news-header">
-                <div class="news-title-wrapper">
-                    <h3>Выход нового альбома Playboi Carti</h3>
-                </div>
-            </div>
-            <p class="news-date">Опубликовано: 25 марта 2025</p>
-            <p class="news-excerpt">Карти братишка 30 треков выпустил совместно с...</p>
-            <div class="article-meta">
-                <span class="category-link">Разное</span>
-                <a href="{{ url_for('news_article', id=5) }}" class="read-more">Читать далее</a>
-            </div>
-        </article>
     </div>
 </div>
 {% endblock %}
