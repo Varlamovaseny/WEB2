@@ -1,9 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 import re
 from datetime import datetime, date, timedelta
 import os
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'
@@ -22,6 +23,36 @@ def get_local_datetime():
     return datetime.now()
 
 
+# Декоратор для проверки авторизации
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Пожалуйста, войдите в систему для доступа к этой странице.', 'error')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+# Декоратор для проверки администратора
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Пожалуйста, войдите в систему для доступа к этой странице.', 'error')
+            return redirect(url_for('login'))
+
+        user = User.query.get(session['user_id'])
+        if not user or not user.is_admin:
+            flash('У вас нет прав для доступа к этой странице.', 'error')
+            return redirect(url_for('index'))
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 # Модель User
 class User(db.Model):
     __tablename__ = 'users'
@@ -31,12 +62,18 @@ class User(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     hashed_password = db.Column(db.String(200), nullable=False)
     created_date = db.Column(db.DateTime, default=get_local_datetime)
+    is_admin = db.Column(db.Boolean, default=False)
 
     # Связь "один ко многим" с Article
     articles = db.relationship('Article', backref='author', lazy=True, cascade='all, delete-orphan')
+    # Связь "один ко многим" с Comment
+    comments = db.relationship('Comment', backref='user', lazy=True)
 
     def set_password(self, password):
         self.hashed_password = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.hashed_password, password)
 
     def __repr__(self):
         return f'<User {self.name}>'
@@ -49,7 +86,7 @@ class Article(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     text = db.Column(db.Text, nullable=False)
-    created_date = db.Column(db.DateTime, default=get_local_datetime)  # ИСПРАВЛЕНО: используем локальную функцию
+    created_date = db.Column(db.DateTime, default=get_local_datetime)
     category = db.Column(db.String(50), nullable=False, default='Разное')
     excerpt = db.Column(db.Text)
 
@@ -69,11 +106,13 @@ class Comment(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.Text, nullable=False)
-    date = db.Column(db.DateTime, default=get_local_datetime)  # ИСПРАВЛЕНО: используем локальную функцию
+    date = db.Column(db.DateTime, default=get_local_datetime)
     author_name = db.Column(db.String(100), nullable=False)
 
     # Внешний ключ для связи с Article
     article_id = db.Column(db.Integer, db.ForeignKey('articles.id'), nullable=False)
+    # Внешний ключ для связи с User (если комментарий от зарегистрированного пользователя)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
     def __repr__(self):
         return f'<Comment {self.id} by {self.author_name}>'
@@ -93,15 +132,19 @@ with app.app_context():
     if not User.query.first():
         print("🔄 Создаем тестовых пользователей...")
         users_to_create = [
-            {'name': 'Петя Пупкин', 'email': 'petya@meowblog.ru'},
-            {'name': 'Кай Ангел', 'email': 'kai@meowblog.ru'},
-            {'name': 'Людка Тетка', 'email': 'lyudka@meowblog.ru'},
-            {'name': 'Кузя Лакомкин', 'email': 'kuzya@meowblog.ru'}
+            {'name': 'Петя Пупкин', 'email': 'petya@meowblog.ru', 'is_admin': True},
+            {'name': 'Кай Ангел', 'email': 'kai@meowblog.ru', 'is_admin': False},
+            {'name': 'Людка Тетка', 'email': 'lyudka@meowblog.ru', 'is_admin': False},
+            {'name': 'Кузя Лакомкин', 'email': 'kuzya@meowblog.ru', 'is_admin': False}
         ]
 
         for user_data in users_to_create:
             if not User.query.filter_by(email=user_data['email']).first():
-                user = User(name=user_data['name'], email=user_data['email'])
+                user = User(
+                    name=user_data['name'],
+                    email=user_data['email'],
+                    is_admin=user_data['is_admin']
+                )
                 user.set_password('password123')
                 db.session.add(user)
 
@@ -146,7 +189,7 @@ with app.app_context():
                 category='Разное',
                 excerpt='старая статья...',
                 user_id=users[0].id,
-                created_date=yesterday  # Вчерашняя дата
+                created_date=yesterday
             )
             db.session.add(article1)
             db.session.add(article2)
@@ -203,7 +246,8 @@ def article_to_dict(article):
         'excerpt': article.excerpt or article.text[:100] + '...',
         'content': f'<p>{article.text}</p>',
         'author_id': article.user_id,
-        'category': article.category
+        'category': article.category,
+        'author_name': article.author.name
     }
 
 
@@ -218,34 +262,18 @@ def comment_to_dict(comment):
     }
 
 
-# Обновленные авторы (для совместимости со старым кодом)
-AUTHORS = [
-    {'id': 1, 'name': 'Петя Пупкин', 'email': 'petya@meowblog.ru'},
-    {'id': 2, 'name': 'Кай Ангел', 'email': 'kai@meowblog.ru'},
-    {'id': 3, 'name': 'Людка Тетка', 'email': 'lyudka@meowblog.ru'},
-    {'id': 4, 'name': 'Кузя Лакомкин', 'email': 'kuzya@meowblog.ru'}
-]
-
-
-# ИСПРАВЛЕННАЯ функция проверки сегодняшней статьи
 def is_today_article(article_date):
     """
     Проверяет, является ли дата статьи сегодняшней.
     Принимает объект datetime или строку с датой.
     """
     try:
-        # Если передана строка (из article_to_dict)
         if isinstance(article_date, str):
-            # Парсим строку в формате "20 December 2024"
             article_datetime = datetime.strptime(article_date, '%d %B %Y')
             return article_datetime.date() == date.today()
-
-        # Если передан объект datetime (напрямую из БД)
         elif isinstance(article_date, datetime):
             return article_date.date() == date.today()
-
         return False
-
     except (ValueError, AttributeError) as e:
         print(f"Ошибка при проверке даты: {e}")
         return False
@@ -258,65 +286,161 @@ def validate_email(email):
 
 def validate_form(name, email, message):
     errors = {}
-
     if not name.strip():
         errors['name'] = 'Имя обязательно для заполнения'
-
     if not email.strip():
         errors['email'] = 'Email обязателен для заполнения'
     elif not validate_email(email):
         errors['email'] = 'Введите корректный email адрес'
-
     if not message.strip():
         errors['message'] = 'Сообщение обязательно для заполнения'
     elif len(message.strip()) < 10:
         errors['message'] = 'Сообщение должно содержать минимум 10 символов'
-
     return errors
 
 
-def validate_article_form(title, content, author_id, category):
+def validate_article_form(title, content, category):
     errors = {}
-
     if not title.strip():
         errors['title'] = 'Заголовок обязателен для заполнения'
     elif len(title.strip()) < 5:
         errors['title'] = 'Заголовок должен содержать минимум 5 символов'
-
     if not content.strip():
         errors['content'] = 'Содержание статьи обязательно'
     elif len(content.strip()) < 50:
         errors['content'] = 'Статья должна содержать минимум 50 символов'
-
-    if not author_id:
-        errors['author_id'] = 'Необходимо выбрать автора'
-
     if not category.strip():
         errors['category'] = 'Необходимо выбрать категорию'
-
     return errors
 
 
 def validate_comment_form(author_name, text):
     errors = {}
-
     if not author_name.strip():
         errors['author_name'] = 'Имя обязательно для заполнения'
     elif len(author_name.strip()) < 2:
         errors['author_name'] = 'Имя должно содержать минимум 2 символа'
-
     if not text.strip():
         errors['text'] = 'Текст комментария обязателен для заполнения'
     elif len(text.strip()) < 5:
         errors['text'] = 'Комментарий должен содержать минимум 5 символов'
+    return errors
+
+
+def validate_registration_form(name, email, password, confirm_password):
+    errors = {}
+    if not name.strip():
+        errors['name'] = 'Имя обязательно для заполнения'
+    elif len(name.strip()) < 2:
+        errors['name'] = 'Имя должно содержать минимум 2 символа'
+
+    if not email.strip():
+        errors['email'] = 'Email обязателен для заполнения'
+    elif not validate_email(email):
+        errors['email'] = 'Введите корректный email адрес'
+    elif User.query.filter_by(email=email).first():
+        errors['email'] = 'Пользователь с таким email уже существует'
+
+    if not password:
+        errors['password'] = 'Пароль обязателен для заполнения'
+    elif len(password) < 6:
+        errors['password'] = 'Пароль должен содержать минимум 6 символов'
+
+    if password != confirm_password:
+        errors['confirm_password'] = 'Пароли не совпадают'
 
     return errors
 
 
-# Маршруты
+def validate_login_form(email, password):
+    errors = {}
+    if not email.strip():
+        errors['email'] = 'Email обязателен для заполнения'
+    if not password:
+        errors['password'] = 'Пароль обязателен для заполнения'
+    return errors
+
+
+# Маршруты аутентификации
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if 'user_id' in session:
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        errors = validate_registration_form(name, email, password, confirm_password)
+
+        if errors:
+            return render_template('register.html',
+                                   name=name,
+                                   email=email,
+                                   errors=errors)
+        else:
+            try:
+                user = User(name=name, email=email)
+                user.set_password(password)
+
+                db.session.add(user)
+                db.session.commit()
+
+                flash('Регистрация прошла успешно! Теперь вы можете войти.', 'success')
+                return redirect(url_for('login'))
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Ошибка при регистрации: {str(e)}', 'error')
+                return redirect(url_for('register'))
+
+    return render_template('register.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if 'user_id' in session:
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+
+        errors = validate_login_form(email, password)
+
+        if errors:
+            return render_template('login.html',
+                                   email=email,
+                                   errors=errors)
+        else:
+            user = User.query.filter_by(email=email).first()
+
+            if user and user.check_password(password):
+                session['user_id'] = user.id
+                session['user_name'] = user.name
+                session['is_admin'] = user.is_admin
+
+                flash(f'Добро пожаловать, {user.name}!', 'success')
+                return redirect(url_for('index'))
+            else:
+                flash('Неверный email или пароль', 'error')
+                return redirect(url_for('login'))
+
+    return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('Вы успешно вышли из системы', 'success')
+    return redirect(url_for('index'))
+
+
+# Основные маршруты
 @app.route('/')
 def index():
-    # Получаем статьи из БД
     articles = Article.query.order_by(Article.created_date.desc()).all()
     today_articles = [article for article in articles if is_today_article(article.created_date)]
     return render_template('index.html',
@@ -326,11 +450,9 @@ def index():
 
 @app.route('/news')
 def news():
-    # Получаем все статьи из БД
     articles = Article.query.order_by(Article.created_date.desc()).all()
     articles_dict = [article_to_dict(article) for article in articles]
 
-    # Отладочная информация
     print("=== ОТЛАДОЧНАЯ ИНФОРМАЦИЯ ===")
     print(f"Сегодня: {date.today()}")
     print(f"Всего статей: {len(articles)}")
@@ -350,21 +472,20 @@ def news_article(id):
     article = Article.query.get(id)
 
     if request.method == 'POST':
-        # Обработка формы комментария
+        # Для комментариев авторизация не требуется
         author_name = request.form.get('author_name', '').strip()
         text = request.form.get('text', '').strip()
 
-        print(f"🔄 Получен комментарий от {author_name}: {text[:50]}...")
+        # Если пользователь авторизован, используем его имя
+        if 'user_id' in session:
+            author_name = session['user_name']
 
         errors = validate_comment_form(author_name, text)
 
         if errors:
-            # Если есть ошибки, показываем статью снова с ошибками
-            author = next((author for author in AUTHORS if author['id'] == article.user_id), None)
             comments = Comment.query.filter_by(article_id=id).order_by(Comment.date.desc()).all()
             return render_template('news_article.html',
                                    article=article_to_dict(article),
-                                   author=author,
                                    comments=[comment_to_dict(comment) for comment in comments],
                                    is_today_article=is_today_article,
                                    current_date=date.today(),
@@ -372,38 +493,30 @@ def news_article(id):
                                    author_name=author_name,
                                    text=text)
         else:
-            # Создаем новый комментарий
             try:
                 new_comment = Comment(
                     text=text,
                     author_name=author_name,
-                    article_id=id
+                    article_id=id,
+                    user_id=session.get('user_id')  # Сохраняем ID пользователя, если он авторизован
                 )
 
                 db.session.add(new_comment)
                 db.session.commit()
 
-                print(f"✅ Комментарий сохранен в БД, ID: {new_comment.id}")
                 flash('Комментарий успешно добавлен!', 'success')
                 return redirect(url_for('news_article', id=id))
 
             except Exception as e:
                 db.session.rollback()
-                print(f"❌ Ошибка при сохранении комментария: {e}")
                 flash(f'Ошибка при добавлении комментария: {str(e)}', 'error')
                 return redirect(url_for('news_article', id=id))
 
-    # GET запрос - показываем статью и комментарии
     if article:
-        author = next((author for author in AUTHORS if author['id'] == article.user_id), None)
-        # Получаем все комментарии к статье
         comments = Comment.query.filter_by(article_id=id).order_by(Comment.date.desc()).all()
-
-        print(f"📝 Статья {id}: {len(comments)} комментариев")
 
         return render_template('news_article.html',
                                article=article_to_dict(article),
-                               author=author,
                                comments=[comment_to_dict(comment) for comment in comments],
                                is_today_article=is_today_article,
                                current_date=date.today())
@@ -411,7 +524,8 @@ def news_article(id):
         return render_template('news_article.html',
                                article={'id': id, 'title': f'Статья {id}',
                                         'date': datetime.now().strftime('%d %B %Y'),
-                                        'content': f'<p>Статья с ID {id} находится в разработке. Скоро здесь появится интересный контент!</p>'},
+                                        'content': f'<p>Статья с ID {id} находится в разработке. Скоро здесь появится интересный контент!</p>',
+                                        'author_name': 'Неизвестный автор'},
                                comments=[],
                                is_today_article=is_today_article,
                                current_date=date.today())
@@ -447,68 +561,52 @@ def feedback():
     return render_template('feedback.html')
 
 
+# Защищенные маршруты
 @app.route('/create-article', methods=['GET', 'POST'])
+@login_required
 def create_article():
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         content = request.form.get('content', '').strip()
-        author_id = request.form.get('author_id')
         category = request.form.get('category', '').strip()
         excerpt = request.form.get('excerpt', '').strip()
 
-        print(f"🔄 Создание статьи: {title}")
-
-        errors = validate_article_form(title, content, author_id, category)
+        errors = validate_article_form(title, content, category)
 
         if errors:
             return render_template('create_article.html',
                                    title=title,
                                    content=content,
-                                   author_id=author_id,
                                    category=category,
                                    excerpt=excerpt,
                                    errors=errors,
-                                   authors=AUTHORS,
                                    categories=CATEGORIES)
         else:
-            # СОХРАНЯЕМ СТАТЬЮ В БАЗУ ДАННЫХ
             try:
-                # Находим пользователя по ID
-                user = User.query.get(int(author_id))
-                if not user:
-                    flash('Автор не найден!', 'error')
-                    return redirect(url_for('create_article'))
-
-                # Создаем новую статью
                 new_article = Article(
                     title=title,
                     text=content,
                     excerpt=excerpt or content[:100] + '...',
                     category=category,
-                    user_id=int(author_id)
-                    # created_date автоматически установится из default=get_local_datetime
+                    user_id=session['user_id']  # Автор - текущий пользователь
                 )
 
                 db.session.add(new_article)
                 db.session.commit()
 
-                print(f"✅ Статья сохранена в БД, ID: {new_article.id}")
                 flash('Статья успешно создана!', 'success')
                 return redirect(url_for('news_article', id=new_article.id))
 
             except Exception as e:
                 db.session.rollback()
-                print(f"❌ Ошибка при сохранении статьи: {e}")
                 flash(f'Ошибка при создании статьи: {str(e)}', 'error')
                 return redirect(url_for('create_article'))
 
-    return render_template('create_article.html',
-                           authors=AUTHORS,
-                           categories=CATEGORIES)
+    return render_template('create_article.html', categories=CATEGORIES)
 
 
-# Редактирование статьи
 @app.route('/edit-article/<int:id>', methods=['GET', 'POST'])
+@login_required
 def edit_article(id):
     article = Article.query.get(id)
 
@@ -516,34 +614,34 @@ def edit_article(id):
         flash('Статья не найдена!', 'error')
         return redirect(url_for('news'))
 
+    # Проверяем, является ли пользователь автором статьи или администратором
+    if article.user_id != session['user_id'] and not session.get('is_admin'):
+        flash('Вы можете редактировать только свои статьи!', 'error')
+        return redirect(url_for('news_article', id=id))
+
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         content = request.form.get('content', '').strip()
-        author_id = request.form.get('author_id')
         category = request.form.get('category', '').strip()
         excerpt = request.form.get('excerpt', '').strip()
 
-        errors = validate_article_form(title, content, author_id, category)
+        errors = validate_article_form(title, content, category)
 
         if errors:
             return render_template('edit_article.html',
                                    article=article_to_dict(article),
                                    title=title,
                                    content=content,
-                                   author_id=author_id,
                                    category=category,
                                    excerpt=excerpt,
                                    errors=errors,
-                                   authors=AUTHORS,
                                    categories=CATEGORIES)
         else:
             try:
-                # Обновляем статью в БД
                 article.title = title
                 article.text = content
                 article.excerpt = excerpt or content[:100] + '...'
                 article.category = category
-                article.user_id = int(author_id)
 
                 db.session.commit()
 
@@ -555,23 +653,29 @@ def edit_article(id):
                 flash(f'Ошибка при обновлении статьи: {str(e)}', 'error')
                 return redirect(url_for('edit_article', id=id))
 
-    # GET запрос - показываем форму с текущими данными
     return render_template('edit_article.html',
                            article=article_to_dict(article),
                            title=article.title,
                            content=article.text,
-                           author_id=article.user_id,
                            category=article.category,
                            excerpt=article.excerpt,
-                           authors=AUTHORS,
                            categories=CATEGORIES)
 
 
-# Удаление статьи
 @app.route('/delete-article/<int:id>')
+@login_required
 def delete_article(id):
     try:
         article = Article.query.get(id)
+
+        if not article:
+            flash('Статья не найдена!', 'error')
+            return redirect(url_for('news'))
+
+        # Проверяем, является ли пользователь автором статьи или администратором
+        if article.user_id != session['user_id'] and not session.get('is_admin'):
+            flash('Вы можете удалять только свои статьи!', 'error')
+            return redirect(url_for('news_article', id=id))
 
         if article:
             db.session.delete(article)
@@ -590,9 +694,6 @@ def delete_article(id):
 # Демонстрация работы с моделями
 @app.route('/demo-db')
 def demo_db():
-    """Страница для демонстрации работы с моделями"""
-
-    # Получаем всех пользователей и статьи из БД
     users = User.query.all()
     articles = Article.query.all()
     comments = Comment.query.all()
@@ -603,7 +704,6 @@ def demo_db():
 # Маршрут для фильтрации по категориям
 @app.route('/category/<category_name>')
 def category_news(category_name):
-    """Показывает статьи определенной категории"""
     articles = Article.query.filter_by(category=category_name).order_by(Article.created_date.desc()).all()
 
     return render_template('category_news.html',

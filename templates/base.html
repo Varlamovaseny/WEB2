@@ -22,6 +22,18 @@
                     <li><a href="{{ url_for('about') }}">О нас</a></li>
                     <li><a href="{{ url_for('create_article') }}" {% if request.endpoint == 'create_article' %}class="active"{% endif %}>Создать статью</a></li>
                 </ul>
+                <div class="user-info">
+                    {% if session.user_id %}
+                        <span class="user-name">Привет, {{ session.user_name }}</span>
+                        {% if session.is_admin %}
+                            <span class="admin-badge">Админ</span>
+                        {% endif %}
+                        <a href="{{ url_for('logout') }}" class="logout-btn">Выйти</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="login-btn">Войти</a>
+                        <a href="{{ url_for('register') }}" class="register-btn">Регистрация</a>
+                    {% endif %}
+                </div>
             </nav>
         </div>
     </header>
@@ -51,6 +63,7 @@
                     <li><a href="/privacy/">Политика конфиденциальности</a></li>
                 </ul>
             </nav>
+
 
             <div class="footer-contacts">
                 <ul>

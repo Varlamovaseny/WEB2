@@ -884,7 +884,7 @@ p, h1, h2, h3, h4, h5, h6 {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background-color: rgba(76, 175, 80, 0.8);
+    background-color: rgba(184, 46, 71, 0.8);
     color: white;
     padding: 10px 20px;
     text-decoration: none;
@@ -903,7 +903,7 @@ p, h1, h2, h3, h4, h5, h6 {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background-color: rgba(244, 67, 54, 0.8);
+    background-color: rgba(77, 11, 23, 0.8);
     color: white;
     padding: 10px 20px;
     text-decoration: none;
@@ -1038,5 +1038,136 @@ p, h1, h2, h3, h4, h5, h6 {
 
     .comment-item {
         padding: 15px;
+    }
+}
+/* Стили для форм аутентификации */
+.auth-form {
+    max-width: 500px;
+    margin: 0 auto;
+    background-color: rgba(75, 20, 20, 0.8);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.auth-form h2 {
+    color: rgb(242, 243, 246);
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.auth-form p {
+    color: rgba(242, 243, 246, 0.8);
+    text-align: center;
+    margin-bottom: 25px;
+    font-family: Arial, sans-serif;
+}
+
+.auth-links {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(242, 243, 246, 0.2);
+}
+
+.auth-links a {
+    color: rgba(225, 87, 87, 0.9);
+    text-decoration: none;
+}
+
+.auth-links a:hover {
+    color: rgba(225, 87, 87, 1);
+    text-decoration: underline;
+}
+
+/* Стили для информации о пользователе */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-left: auto;
+}
+
+.user-name {
+    color: rgb(242, 243, 246);
+    font-family: clickclack;
+}
+
+.admin-badge {
+    background-color: rgba(76, 175, 80, 0.8);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-family: Arial, sans-serif;
+}
+
+/* Обновленные стили кнопок в красных тонах */
+.logout-btn,
+.login-btn,
+.register-btn {
+    padding: 6px 12px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-family: clickclack;
+    transition: all 0.3s ease;
+    font-size: 0.85rem;
+    border: none;
+    cursor: pointer;
+}
+
+.logout-btn {
+    background-color: rgba(225, 87, 87, 0.8);
+    color: white;
+}
+
+.logout-btn:hover {
+    background-color: rgba(225, 87, 87, 1);
+    transform: translateY(-1px);
+}
+
+.login-btn {
+    background-color: rgba(75, 20, 20, 0.8);
+    color: white;
+    border: 1px solid rgba(225, 87, 87, 0.6);
+}
+
+.login-btn:hover {
+    background-color: rgba(75, 20, 20, 1);
+    border-color: rgba(225, 87, 87, 1);
+    transform: translateY(-1px);
+}
+
+.register-btn {
+    background-color: rgba(225, 87, 87, 0.8);
+    color: white;
+}
+
+.register-btn:hover {
+    background-color: rgba(225, 87, 87, 1);
+    transform: translateY(-1px);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .user-info {
+        flex-direction: column;
+        gap: 10px;
+        margin-left: 0;
+        margin-top: 15px;
+    }
+
+    .auth-form {
+        margin: 0 15px;
+        padding: 20px;
+    }
+
+    /* Еще меньшие кнопки на мобильных */
+    .logout-btn,
+    .login-btn,
+    .register-btn {
+        padding: 5px 10px;
+        font-size: 0.8rem;
     }
 }

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Регистрация - Meow Blog{% endblock %}
+
+{% block content %}
+<div class="auth-form">
+    <h2>Регистрация</h2>
+    <p>Создайте аккаунт для создания и редактирования статей</p>
+    
+    <form method="POST" action="{{ url_for('register') }}">
+        <div class="form-group">
+            <label for="name">Имя *</label>
+            <input type="text" id="name" name="name" value="{{ name or '' }}" 
+                   placeholder="Введите ваше имя" required>
+            {% if errors and errors.name %}
+                <span class="error">{{ errors.name }}</span>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email *</label>
+            <input type="email" id="email" name="email" value="{{ email or '' }}" 
+                   placeholder="Введите ваш email" required>
+            {% if errors and errors.email %}
+                <span class="error">{{ errors.email }}</span>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Пароль *</label>
+            <input type="password" id="password" name="password" 
+                   placeholder="Введите пароль" required>
+            {% if errors and errors.password %}
+                <span class="error">{{ errors.password }}</span>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="confirm_password">Подтверждение пароля *</label>
+            <input type="password" id="confirm_password" name="confirm_password" 
+                   placeholder="Повторите пароль" required>
+            {% if errors and errors.confirm_password %}
+                <span class="error">{{ errors.confirm_password }}</span>
+            {% endif %}
+        </div>
+        
+        <button type="submit" class="submit-btn">Зарегистрироваться</button>
+    </form>
+    
+    <div class="auth-links">
+        <p>Уже есть аккаунт? <a href="{{ url_for('login') }}">Войдите</a></p>
+    </div>
+</div>
+{% endblock %}
