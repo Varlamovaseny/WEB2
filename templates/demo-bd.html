@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Демо базы данных - Meow Blog{% endblock %}
+
+{% block content %}
+<div class="demo-db">
+    <h2>Демонстрация работы с базой данных</h2>
+    
+    <div class="db-section">
+        <h3>Пользователи (модель User)</h3>
+        <div class="users-list">
+            {% for user in users %}
+            <div class="user-item">
+                <strong>ID:</strong> {{ user.id }}<br>
+                <strong>Имя:</strong> {{ user.name }}<br>
+                <strong>Email:</strong> {{ user.email }}<br>
+                <strong>Дата регистрации:</strong> {{ user.created_date.strftime('%d.%m.%Y %H:%M') }}<br>
+                <strong>Статей:</strong> {{ user.articles|length }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="db-section">
+        <h3>Статьи (модель Article)</h3>
+        <div class="articles-list">
+            {% for article in articles %}
+            <div class="article-item">
+                <strong>ID:</strong> {{ article.id }}<br>
+                <strong>Заголовок:</strong> {{ article.title }}<br>
+                <strong>Автор:</strong> {{ article.author.name }} (ID: {{ article.user_id }})<br>
+                <strong>Дата создания:</strong> {{ article.created_date.strftime('%d.%m.%Y %H:%M') }}<br>
+                <strong>Текст:</strong> {{ article.text[:100] }}...
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="db-info">
+        <h3>Связь "один ко многим"</h3>
+        <p><strong>User.articles</strong> - все статьи пользователя</p>
+        <p><strong>Article.author</strong> - автор статьи</p>
+        <p><strong>Article.user_id</strong> - внешний ключ к User.id</p>
+    </div>
+</div>
+{% endblock %}

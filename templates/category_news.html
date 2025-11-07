@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Категория: {{ category_name }} - Meow Blog{% endblock %}
+
+{% block content %}
+<div class="category-news">
+    <div class="category-header">
+        <h2>Категория: {{ category_name }}</h2>
+        <p>Статьи в категории "{{ category_name }}"</p>
+        <a href="{{ url_for('news') }}" class="back-to-news">← Все новости</a>
+    </div>
+
+    {% if articles %}
+    <div class="news-list">
+        {% for article in articles %}
+        <article class="news-item {% if is_today_article(article.date) %}today{% endif %}">
+            <div class="news-header">
+                <div class="news-title-wrapper">
+                    <h3>{{ article.title }}</h3>
+                    {% if is_today_article(article.date) %}
+                    <span class="new-badge">Новое!</span>
+                    {% endif %}
+                </div>
+            </div>
+            <p class="news-date {% if is_today_article(article.date) %}today{% endif %}">
+                Опубликовано: {{ article.date }}
+            </p>
+            <p class="news-excerpt">{{ article.excerpt }}</p>
+            <div class="article-meta">
+                <span class="article-category-badge">{{ article.category }}</span>
+                <a href="{{ url_for('news_article', id=article.id) }}" class="read-more">Читать далее</a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="no-articles">
+        <p>В категории "{{ category_name }}" пока нет статей.</p>
+        <a href="{{ url_for('create_article') }}" class="back-link">Создать первую статью</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

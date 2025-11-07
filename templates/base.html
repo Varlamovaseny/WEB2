@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <!-- Шапка сайта -->
+
     <header class="header">
         <div class="header-container">
             <div class="logo">
@@ -20,15 +20,13 @@
                     <li><a href="{{ url_for('news') }}">Новости</a></li>
                     <li><a href="{{ url_for('feedback') }}">Обратная связь</a></li>
                     <li><a href="{{ url_for('about') }}">О нас</a></li>
+                    <li><a href="{{ url_for('create_article') }}" {% if request.endpoint == 'create_article' %}class="active"{% endif %}>Создать статью</a></li>
                 </ul>
             </nav>
         </div>
     </header>
-
-    <!-- Основное содержимое -->
     <main class="main-content">
         <div class="container">
-            <!-- Блок для вывода сообщений -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     <div class="flash-messages">
@@ -38,17 +36,14 @@
                     </div>
                 {% endif %}
             {% endwith %}
-            
-            <!-- Блок для основного контента -->
+
             {% block content %}
             {% endblock %}
         </div>
     </main>
 
-    <!-- Подвал сайта -->
     <footer class="site-footer">
         <div class="footer-container">
-            <!-- Меню в подвале -->
             <nav class="footer-nav">
                 <ul>
                     <li><a href="{{ url_for('about') }}">О нас</a></li>
@@ -57,7 +52,6 @@
                 </ul>
             </nav>
 
-            <!-- Контактная информация -->
             <div class="footer-contacts">
                 <ul>
                     <li><a href="tel:+79662910950">Телефон: +7 (966) 291-09-50</a></li>
@@ -65,7 +59,6 @@
                 </ul>
             </div>
 
-            <!-- Информация о копирайте -->
             <div class="footer-copyright">
                 <p>&copy; 2024 Meow Blog. Все права защищены.</p>
             </div>
