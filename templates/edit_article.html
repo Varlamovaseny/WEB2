@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Редактировать статью - Meow Blog{% endblock %}
+
+{% block content %}
+<div class="edit-article-form">
+    <h2>Редактировать статью</h2>
+    <p>Измените данные статьи ниже</p>
+    
+    <form method="POST" action="{{ url_for('edit_article', id=article.id) }}" class="article-form">
+        <div class="form-group">
+            <label for="title">Заголовок статьи *</label>
+            <input type="text" id="title" name="title" value="{{ title or '' }}" 
+                   placeholder="Введите заголовок статьи" required>
+            {% if errors and errors.title %}
+                <span class="error">{{ errors.title }}</span>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="excerpt">Краткое описание</label>
+            <textarea id="excerpt" name="excerpt" 
+                      placeholder="Краткое описание статьи"
+                      rows="3">{{ excerpt or '' }}</textarea>
+            <small>Не более 200 символов.</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="content">Содержание статьи *</label>
+            <textarea id="content" name="content" 
+                      placeholder="Напишите содержание вашей статьи..." 
+                      rows="12" required>{{ content or '' }}</textarea>
+            {% if errors and errors.content %}
+                <span class="error">{{ errors.content }}</span>
+            {% endif %}
+            <small>Минимум 50 символов. Поддерживается HTML-разметка.</small>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="author_id">Автор *</label>
+                <select id="author_id" name="author_id" required>
+                    <option value="">Выберите автора</option>
+                    {% for author in authors %}
+                    <option value="{{ author.id }}" 
+                            {% if author_id == author.id|string %}selected{% endif %}>
+                        {{ author.name }} ({{ author.email }})
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if errors and errors.author_id %}
+                    <span class="error">{{ errors.author_id }}</span>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="category">Категория *</label>
+                <select id="category" name="category" required>
+                    <option value="">Выберите категорию</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" 
+                            {% if category == cat %}selected{% endif %}>
+                        {{ cat }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if errors and errors.category %}
+                    <span class="error">{{ errors.category }}</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="submit-btn">Сохранить изменения</button>
+            <a href="{{ url_for('news_article', id=article.id) }}" class="cancel-btn">Отмена</a>
+            <a href="{{ url_for('delete_article', id=article.id) }}" class="delete-btn" 
+               onclick="return confirm('Вы уверены, что хотите удалить эту статью?')">Удалить статью</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

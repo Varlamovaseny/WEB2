@@ -870,3 +870,75 @@ p, h1, h2, h3, h4, h5, h6 {
         align-items: flex-start;
     }
 }
+/* Стили для кнопок управления статьями */
+.article-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(242, 243, 246, 0.2);
+    flex-wrap: wrap;
+}
+
+.edit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(76, 175, 80, 0.8);
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-family: clickclack;
+    transition: background-color 0.3s ease;
+}
+
+.edit-btn:hover {
+    background-color: rgba(76, 175, 80, 1);
+    text-decoration: none;
+    color: white;
+}
+
+.delete-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(244, 67, 54, 0.8);
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-family: clickclack;
+    transition: background-color 0.3s ease;
+}
+
+.delete-btn:hover {
+    background-color: rgba(244, 67, 54, 1);
+    text-decoration: none;
+    color: white;
+}
+
+/* Стили для формы редактирования */
+.edit-article-form {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: rgba(75, 20, 20, 0.8);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+/* Адаптивность для кнопок */
+@media (max-width: 768px) {
+    .article-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .edit-btn,
+    .delete-btn {
+        text-align: center;
+        justify-content: center;
+    }
+}

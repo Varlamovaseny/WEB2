@@ -74,23 +74,6 @@ with app.app_context():
 
         db.session.commit()
 
-        # Создаем демо-статьи после создания пользователей
-        users = User.query.all()
-        if users and not Article.query.first():
-            article1 = Article(
-                title='Новая картина Бэнкси',
-                text='Может завтра нарисует?',
-                user_id=users[0].id
-            )
-            article2 = Article(
-                title='Я новость',
-                text='Да блин нуууу :(((',
-                user_id=users[1].id if len(users) > 1 else users[0].id
-            )
-            db.session.add(article1)
-            db.session.add(article2)
-            db.session.commit()
-
 # Обновленные категории
 CATEGORIES = [
     'Искусство',
@@ -289,6 +272,73 @@ def create_article():
     return render_template('create_article.html',
                            authors=AUTHORS,
                            categories=CATEGORIES)
+
+
+# Редактирование статьи
+@app.route('/edit-article/<int:id>', methods=['GET', 'POST'])
+def edit_article(id):
+    article = next((article for article in NEWS_ARTICLES if article['id'] == id), None)
+
+    if not article:
+        flash('Статья не найдена!', 'error')
+        return redirect(url_for('news'))
+
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        content = request.form.get('content', '').strip()
+        author_id = request.form.get('author_id')
+        category = request.form.get('category', '').strip()
+        excerpt = request.form.get('excerpt', '').strip()
+
+        errors = validate_article_form(title, content, author_id, category)
+
+        if errors:
+            return render_template('edit_article.html',
+                                   article=article,
+                                   title=title,
+                                   content=content,
+                                   author_id=author_id,
+                                   category=category,
+                                   excerpt=excerpt,
+                                   errors=errors,
+                                   authors=AUTHORS,
+                                   categories=CATEGORIES)
+        else:
+            # Обновляем статью
+            article['title'] = title
+            article['content'] = f'<p>{content}</p>'
+            article['excerpt'] = excerpt or content[:100] + '...' if content else ''
+            article['author_id'] = int(author_id)
+            article['category'] = category
+
+            flash('Статья успешно обновлена!', 'success')
+            return redirect(url_for('news_article', id=id))
+
+    # GET запрос - показываем форму с текущими данными
+    return render_template('edit_article.html',
+                           article=article,
+                           title=article['title'],
+                           content=article['content'].replace('<p>', '').replace('</p>', ''),
+                           author_id=article['author_id'],
+                           category=article['category'],
+                           excerpt=article['excerpt'],
+                           authors=AUTHORS,
+                           categories=CATEGORIES)
+
+
+# Удаление статьи
+@app.route('/delete-article/<int:id>')
+def delete_article(id):
+    global NEWS_ARTICLES
+    article = next((article for article in NEWS_ARTICLES if article['id'] == id), None)
+
+    if article:
+        NEWS_ARTICLES = [article for article in NEWS_ARTICLES if article['id'] != id]
+        flash('Статья успешно удалена!', 'success')
+    else:
+        flash('Статья не найдена!', 'error')
+
+    return redirect(url_for('news'))
 
 
 # Демонстрация работы с моделями

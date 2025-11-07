@@ -19,6 +19,12 @@
         </div>
     </div>
 
+    {% if article.category %}
+    <div class="article-category">
+        <strong>Категория:</strong> {{ article.category }}
+    </div>
+    {% endif %}
+
     <div class="article-content">
         {{ article.content|safe }}
 
@@ -29,6 +35,21 @@
         {% endif %}
     </div>
 
-    <a href="{{ url_for('news') }}" class="back-to-news">← Вернуться к списку новостей</a>
+    {% if author %}
+    <div class="article-author">
+        <div class="author-info">
+            <div class="author-name">Автор: {{ author.name }}</div>
+            <div class="author-email">{{ author.email }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Кнопки управления статьей -->
+    <div class="article-actions">
+        <a href="{{ url_for('edit_article', id=article.id) }}" class="edit-btn">✏️ Редактировать</a>
+        <a href="{{ url_for('delete_article', id=article.id) }}" class="delete-btn"
+           onclick="return confirm('Вы уверены, что хотите удалить эту статью?')">🗑️ Удалить</a>
+        <a href="{{ url_for('news') }}" class="back-to-news">← Вернуться к списку новостей</a>
+    </div>
 </div>
 {% endblock %}
