@@ -52,4 +52,58 @@
         <a href="{{ url_for('news') }}" class="back-to-news">← Вернуться к списку новостей</a>
     </div>
 </div>
+
+<!-- Секция комментариев -->
+<div class="comments-section">
+    <h2>Комментарии ({{ comments|length }})</h2>
+
+    <!-- Форма добавления комментария -->
+    <div class="comment-form">
+        <h3>Добавить комментарий</h3>
+        <form method="POST" action="{{ url_for('news_article', id=article.id) }}">
+            <div class="form-group">
+                <label for="author_name">Ваше имя *</label>
+                <input type="text" id="author_name" name="author_name"
+                       value="{{ author_name or '' }}"
+                       placeholder="Введите ваше имя" required>
+                {% if errors and errors.author_name %}
+                    <span class="error">{{ errors.author_name }}</span>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="text">Комментарий *</label>
+                <textarea id="text" name="text"
+                          placeholder="Напишите ваш комментарий..."
+                          rows="4" required>{{ text or '' }}</textarea>
+                {% if errors and errors.text %}
+                    <span class="error">{{ errors.text }}</span>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="submit-btn">Отправить комментарий</button>
+        </form>
+    </div>
+
+    <!-- Список комментариев -->
+    <div class="comments-list">
+        {% if comments %}
+            {% for comment in comments %}
+            <div class="comment-item">
+                <div class="comment-header">
+                    <strong class="comment-author">{{ comment.author_name }}</strong>
+                    <span class="comment-date">{{ comment.date }}</span>
+                </div>
+                <div class="comment-text">
+                    {{ comment.text }}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-comments">
+                <p>Пока нет комментариев. Будьте первым!</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

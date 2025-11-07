@@ -16,6 +16,12 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
+# Функция для получения текущей даты в правильном часовом поясе
+def get_local_datetime():
+    """Возвращает текущую дату и время в локальном часовом поясе"""
+    return datetime.now()
+
+
 # Модель User
 class User(db.Model):
     __tablename__ = 'users'
@@ -24,7 +30,7 @@ class User(db.Model):
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     hashed_password = db.Column(db.String(200), nullable=False)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=get_local_datetime)
 
     # Связь "один ко многим" с Article
     articles = db.relationship('Article', backref='author', lazy=True, cascade='all, delete-orphan')
@@ -43,31 +49,49 @@ class Article(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     text = db.Column(db.Text, nullable=False)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=get_local_datetime)  # ИСПРАВЛЕНО: используем локальную функцию
     category = db.Column(db.String(50), nullable=False, default='Разное')
     excerpt = db.Column(db.Text)
 
     # Внешний ключ для связи с User
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
+    # Связь "один ко многим" с Comment
+    comments = db.relationship('Comment', backref='article', lazy=True, cascade='all, delete-orphan')
+
     def __repr__(self):
         return f'<Article {self.title}>'
 
 
-# Функция для получения текущей даты в правильном часовом поясе
-def get_local_datetime():
-    """Возвращает текущую дату и время в локальном часовом поясе"""
-    return datetime.now()
+# Модель Comment
+class Comment(db.Model):
+    __tablename__ = 'comments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.Text, nullable=False)
+    date = db.Column(db.DateTime, default=get_local_datetime)  # ИСПРАВЛЕНО: используем локальную функцию
+    author_name = db.Column(db.String(100), nullable=False)
+
+    # Внешний ключ для связи с Article
+    article_id = db.Column(db.Integer, db.ForeignKey('articles.id'), nullable=False)
+
+    def __repr__(self):
+        return f'<Comment {self.id} by {self.author_name}>'
 
 
 # Создание таблиц при запуске
 with app.app_context():
     # Пересоздаем все таблицы
-    db.drop_all()
-    db.create_all()
+    try:
+        db.drop_all()
+        db.create_all()
+        print("✅ Таблицы успешно созданы")
+    except Exception as e:
+        print(f"❌ Ошибка при создании таблиц: {e}")
 
     # Создаем тестовых пользователей, если их нет
     if not User.query.first():
+        print("🔄 Создаем тестовых пользователей...")
         users_to_create = [
             {'name': 'Петя Пупкин', 'email': 'petya@meowblog.ru'},
             {'name': 'Кай Ангел', 'email': 'kai@meowblog.ru'},
@@ -81,35 +105,38 @@ with app.app_context():
                 user.set_password('password123')
                 db.session.add(user)
 
-        db.session.commit()
+        try:
+            db.session.commit()
+            print("✅ Пользователи созданы")
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Ошибка при создании пользователей: {e}")
 
         # Создаем демо-статьи в БД
         users = User.query.all()
         if users and not Article.query.first():
+            print("🔄 Создаем тестовые статьи...")
             # Статьи с СЕГОДНЯШНЕЙ датой (используем локальное время)
             article1 = Article(
                 title='Новая картина Бэнкси',
                 text='Может завтра нарисует?',
                 category='Искусство',
                 excerpt='пока не нарисована...',
-                user_id=users[0].id,
-                created_date=get_local_datetime()  # Локальная дата
+                user_id=users[0].id
             )
             article2 = Article(
                 title='Я новость',
                 text='Да блин нуууу :(((',
                 category='Разное',
                 excerpt='не открывай меня',
-                user_id=users[1].id if len(users) > 1 else users[0].id,
-                created_date=get_local_datetime()  # Локальная дата
+                user_id=users[1].id if len(users) > 1 else users[0].id
             )
             article3 = Article(
                 title='Новый показ Victoria`s Secret',
                 text='Красотки, умницы, молодцы! Так держать девчонки!',
                 category='Мода',
                 excerpt='Возвращение легендарных ангелов на подиум',
-                user_id=users[2].id if len(users) > 2 else users[0].id,
-                created_date=get_local_datetime()  # Локальная дата
+                user_id=users[2].id if len(users) > 2 else users[0].id
             )
             # Статья со ВЧЕРАШНЕЙ датой для теста
             yesterday = get_local_datetime() - timedelta(days=1)
@@ -125,7 +152,38 @@ with app.app_context():
             db.session.add(article2)
             db.session.add(article3)
             db.session.add(article4)
-            db.session.commit()
+
+            try:
+                db.session.commit()
+                print("✅ Статьи созданы")
+
+                # Создаем тестовые комментарии
+                print("🔄 Создаем тестовые комментарии...")
+                comment1 = Comment(
+                    text='Отличная статья! Жду продолжения.',
+                    author_name='Анонимный читатель',
+                    article_id=article1.id
+                )
+                comment2 = Comment(
+                    text='Интересно, а когда будет новая картина?',
+                    author_name='Любитель искусства',
+                    article_id=article1.id
+                )
+                comment3 = Comment(
+                    text='Очень смешно 😄',
+                    author_name='Весельчак',
+                    article_id=article2.id
+                )
+
+                db.session.add(comment1)
+                db.session.add(comment2)
+                db.session.add(comment3)
+                db.session.commit()
+                print("✅ Комментарии созданы")
+
+            except Exception as e:
+                db.session.rollback()
+                print(f"❌ Ошибка при создании статей/комментариев: {e}")
 
 # Обновленные категории
 CATEGORIES = [
@@ -138,17 +196,25 @@ CATEGORIES = [
 
 # Вспомогательная функция для преобразования статьи из БД в формат для шаблонов
 def article_to_dict(article):
-    # Используем локальное время для форматирования даты
-    local_created_date = article.created_date
     return {
         'id': article.id,
         'title': article.title,
-        'date': local_created_date.strftime('%d %B %Y'),
+        'date': article.created_date.strftime('%d %B %Y'),
         'excerpt': article.excerpt or article.text[:100] + '...',
         'content': f'<p>{article.text}</p>',
         'author_id': article.user_id,
-        'category': article.category,
-        'created_date_obj': local_created_date  # Добавляем объект даты для отладки
+        'category': article.category
+    }
+
+
+# Вспомогательная функция для преобразования комментария из БД в формат для шаблонов
+def comment_to_dict(comment):
+    return {
+        'id': comment.id,
+        'text': comment.text,
+        'date': comment.date.strftime('%d.%m.%Y %H:%M'),
+        'author_name': comment.author_name,
+        'article_id': comment.article_id
     }
 
 
@@ -231,6 +297,22 @@ def validate_article_form(title, content, author_id, category):
     return errors
 
 
+def validate_comment_form(author_name, text):
+    errors = {}
+
+    if not author_name.strip():
+        errors['author_name'] = 'Имя обязательно для заполнения'
+    elif len(author_name.strip()) < 2:
+        errors['author_name'] = 'Имя должно содержать минимум 2 символа'
+
+    if not text.strip():
+        errors['text'] = 'Текст комментария обязателен для заполнения'
+    elif len(text.strip()) < 5:
+        errors['text'] = 'Комментарий должен содержать минимум 5 символов'
+
+    return errors
+
+
 # Маршруты
 @app.route('/')
 def index():
@@ -251,6 +333,7 @@ def news():
     # Отладочная информация
     print("=== ОТЛАДОЧНАЯ ИНФОРМАЦИЯ ===")
     print(f"Сегодня: {date.today()}")
+    print(f"Всего статей: {len(articles)}")
     for article in articles:
         print(
             f"Статья '{article.title}': {article.created_date.date()} (сегодняшняя: {is_today_article(article.created_date)})")
@@ -262,15 +345,66 @@ def news():
                            current_date=date.today())
 
 
-@app.route('/news/<int:id>')
+@app.route('/news/<int:id>', methods=['GET', 'POST'])
 def news_article(id):
     article = Article.query.get(id)
 
+    if request.method == 'POST':
+        # Обработка формы комментария
+        author_name = request.form.get('author_name', '').strip()
+        text = request.form.get('text', '').strip()
+
+        print(f"🔄 Получен комментарий от {author_name}: {text[:50]}...")
+
+        errors = validate_comment_form(author_name, text)
+
+        if errors:
+            # Если есть ошибки, показываем статью снова с ошибками
+            author = next((author for author in AUTHORS if author['id'] == article.user_id), None)
+            comments = Comment.query.filter_by(article_id=id).order_by(Comment.date.desc()).all()
+            return render_template('news_article.html',
+                                   article=article_to_dict(article),
+                                   author=author,
+                                   comments=[comment_to_dict(comment) for comment in comments],
+                                   is_today_article=is_today_article,
+                                   current_date=date.today(),
+                                   errors=errors,
+                                   author_name=author_name,
+                                   text=text)
+        else:
+            # Создаем новый комментарий
+            try:
+                new_comment = Comment(
+                    text=text,
+                    author_name=author_name,
+                    article_id=id
+                )
+
+                db.session.add(new_comment)
+                db.session.commit()
+
+                print(f"✅ Комментарий сохранен в БД, ID: {new_comment.id}")
+                flash('Комментарий успешно добавлен!', 'success')
+                return redirect(url_for('news_article', id=id))
+
+            except Exception as e:
+                db.session.rollback()
+                print(f"❌ Ошибка при сохранении комментария: {e}")
+                flash(f'Ошибка при добавлении комментария: {str(e)}', 'error')
+                return redirect(url_for('news_article', id=id))
+
+    # GET запрос - показываем статью и комментарии
     if article:
         author = next((author for author in AUTHORS if author['id'] == article.user_id), None)
+        # Получаем все комментарии к статье
+        comments = Comment.query.filter_by(article_id=id).order_by(Comment.date.desc()).all()
+
+        print(f"📝 Статья {id}: {len(comments)} комментариев")
+
         return render_template('news_article.html',
                                article=article_to_dict(article),
                                author=author,
+                               comments=[comment_to_dict(comment) for comment in comments],
                                is_today_article=is_today_article,
                                current_date=date.today())
     else:
@@ -278,6 +412,7 @@ def news_article(id):
                                article={'id': id, 'title': f'Статья {id}',
                                         'date': datetime.now().strftime('%d %B %Y'),
                                         'content': f'<p>Статья с ID {id} находится в разработке. Скоро здесь появится интересный контент!</p>'},
+                               comments=[],
                                is_today_article=is_today_article,
                                current_date=date.today())
 
@@ -321,6 +456,8 @@ def create_article():
         category = request.form.get('category', '').strip()
         excerpt = request.form.get('excerpt', '').strip()
 
+        print(f"🔄 Создание статьи: {title}")
+
         errors = validate_article_form(title, content, author_id, category)
 
         if errors:
@@ -342,24 +479,26 @@ def create_article():
                     flash('Автор не найден!', 'error')
                     return redirect(url_for('create_article'))
 
-                # Создаем новую статью с ЛОКАЛЬНОЙ датой
+                # Создаем новую статью
                 new_article = Article(
                     title=title,
                     text=content,
                     excerpt=excerpt or content[:100] + '...',
                     category=category,
-                    user_id=int(author_id),
-                    created_date=get_local_datetime()  # Используем локальное время!
+                    user_id=int(author_id)
+                    # created_date автоматически установится из default=get_local_datetime
                 )
 
                 db.session.add(new_article)
                 db.session.commit()
 
+                print(f"✅ Статья сохранена в БД, ID: {new_article.id}")
                 flash('Статья успешно создана!', 'success')
                 return redirect(url_for('news_article', id=new_article.id))
 
             except Exception as e:
                 db.session.rollback()
+                print(f"❌ Ошибка при сохранении статьи: {e}")
                 flash(f'Ошибка при создании статьи: {str(e)}', 'error')
                 return redirect(url_for('create_article'))
 
@@ -405,7 +544,6 @@ def edit_article(id):
                 article.excerpt = excerpt or content[:100] + '...'
                 article.category = category
                 article.user_id = int(author_id)
-                # При редактировании не меняем дату создания
 
                 db.session.commit()
 
@@ -457,8 +595,9 @@ def demo_db():
     # Получаем всех пользователей и статьи из БД
     users = User.query.all()
     articles = Article.query.all()
+    comments = Comment.query.all()
 
-    return render_template('demo_db.html', users=users, articles=articles)
+    return render_template('demo_db.html', users=users, articles=articles, comments=comments)
 
 
 # Маршрут для фильтрации по категориям
